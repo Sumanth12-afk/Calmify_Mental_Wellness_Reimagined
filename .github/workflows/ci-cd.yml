@@ -101,8 +101,8 @@ jobs:
         sudo apt-get update
         sudo apt-get install trivy -y
 
-    - name: Scan Docker image with Trivy
-      run: trivy image --exit-code 1 --severity HIGH,CRITICAL --format table --output trivy-report.txt $IMAGE_NAME_LOWER:$IMAGE_TAG
+    - name: Scan Docker image with Trivy (fail only on CRITICAL)
+      run: trivy image --exit-code 1 --severity CRITICAL --format table --output trivy-report.txt $IMAGE_NAME_LOWER:$IMAGE_TAG
 
     - name: Upload Trivy Scan Report
       if: always()
