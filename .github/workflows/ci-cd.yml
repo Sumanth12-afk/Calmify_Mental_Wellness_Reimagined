@@ -115,18 +115,22 @@ jobs:
     needs: trivy-scan
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'latest'
+    - name: Install Docker (needed by KIND)
+      uses: docker-practice/actions-setup-docker@v1
 
-      - name: Set up kubeconfig
-        run: |
-          echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
+    - name: Install KIND
+      uses: helm/kind-action@v1.8.0
+      with:
+        version: v0.20.0
 
-      - name: Deploy to Kubernetes
-        run: kubectl apply -f k8s/deployment.yaml
+    - name: Get cluster info
+      run: |
+        kubectl cluster-info
+        kubectl get nodes
+
+    - name: Apply Kubernetes deployment
+      run: |
+        kubectl apply -f k8s/deployment.yaml
