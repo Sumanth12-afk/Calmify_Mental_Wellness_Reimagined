@@ -4,6 +4,9 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
+# Update npm to the latest version to get a newer cross-spawn
+RUN npm install -g npm@latest
+
 # Copy package files
 COPY package*.json ./
 
