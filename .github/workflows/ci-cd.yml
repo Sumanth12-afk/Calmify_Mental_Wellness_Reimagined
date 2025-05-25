@@ -72,12 +72,16 @@ jobs:
       - name: Convert image name to lowercase
         run: echo "IMAGE_NAME_LOWER=ghcr.io/$(echo $IMAGE_NAME | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
+      - name: Ensure working directory is root
+        run: pwd
+
       - name: Build Docker image
-        run: docker build -t $IMAGE_NAME_LOWER:$IMAGE_TAG .
+        run: docker build -f Dockerfile -t $IMAGE_NAME_LOWER:$IMAGE_TAG .
 
       - name: Push Docker image to GHCR
         run: docker push $IMAGE_NAME_LOWER:$IMAGE_TAG
 
+        
   trivy-scan:
     needs: build-and-push
     runs-on: ubuntu-latest
