@@ -50,7 +50,7 @@ export function Solution() {
               Our Solution: <span className="text-[#43AA8B]">Calmify</span>
             </h2>
             <p className="text-lg text-[#2D3142]/70 font-nunito">
-              We've created an AI-powered mental wellness companion that provides personalized support exactly when you need it.
+              We&apos;ve created an AI-powered mental wellness companion that provides personalized support exactly when you need it.
             </p>
             
             <div className="space-y-4">
