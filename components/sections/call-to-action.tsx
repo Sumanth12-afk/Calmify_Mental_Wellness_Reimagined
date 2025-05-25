@@ -20,9 +20,8 @@ export function CallToAction() {
             Join Us in Transforming Mental Wellness
           </h2>
           <p className="text-lg text-white/80 mb-8 font-nunito">
-            We're seeking $5M in Series A funding to accelerate our growth and expand our reach, bringing mental wellness to millions globally.
+          We&apos;re seeking $5M in Series A funding to accelerate our growth and expand our reach, bringing mental wellness to millions globally.
           </p>
-          
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 md:p-8 mb-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-4">
