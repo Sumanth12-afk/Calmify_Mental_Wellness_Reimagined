@@ -4,8 +4,14 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
+# Switch to root user to install global packages
+USER root
+
 # Update npm to the latest version to get a newer cross-spawn
 RUN npm install -g npm@latest
+
+# Switch back to node user for security
+USER node
 
 # Copy package files
 COPY package*.json ./
