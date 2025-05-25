@@ -54,7 +54,7 @@ jobs:
           projectBaseDir: .
           args: >
             -Dsonar.projectKey=Sumanth12-afk_Calmify_Mental_Wellness_Reimagined
-            -Dsonar.organization=nallandhigal-sumanth
+            -Dsonar.organization=sumanth12-afk
             -Dsonar.sources=.
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
 
