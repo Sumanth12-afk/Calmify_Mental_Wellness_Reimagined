@@ -93,7 +93,7 @@ export function MarketOpportunity() {
         className="mt-12 p-6 bg-gradient-to-r from-[#3A7CA5]/10 to-[#43AA8B]/10 rounded-xl text-center max-w-2xl mx-auto"
       >
         <p className="text-lg font-medium text-[#2D3142] font-nunito">
-          "The mental health app market is projected to reach $4.9 billion by 2027, representing one of the fastest-growing segments in digital health."
+          &quot;The mental health app market is projected to reach $4.9 billion by 2027, representing one of the fastest-growing segments in digital health.&quot;
         </p>
         <p className="text-sm text-[#2D3142]/70 mt-2 font-inter">- Global Market Insights Report, 2025</p>
       </motion.div>
