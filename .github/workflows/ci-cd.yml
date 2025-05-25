@@ -47,16 +47,17 @@ jobs:
         run: npm ci
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarqube-scan-action@v5.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           projectBaseDir: .
           args: >
-            -Dsonar.projectKey=${{ github.repository }}
-            -Dsonar.organization=your-org-name
+            -Dsonar.projectKey=Sumanth12-afk_Calmify_Mental_Wellness_Reimagined
+            -Dsonar.organization=nallandhigal-sumanth
             -Dsonar.sources=.
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+
 
   build-and-push:
     needs: sonarqube
