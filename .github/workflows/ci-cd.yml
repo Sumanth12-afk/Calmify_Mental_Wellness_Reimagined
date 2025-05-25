@@ -86,6 +86,9 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+    - name: Re-create lowercase image name
+      run: echo "IMAGE_NAME_LOWER=ghcr.io/$(echo $IMAGE_NAME | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
     - name: Install Trivy
       run: |
         sudo apt-get update
