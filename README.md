@@ -1,4 +1,4 @@
-# 🚀 Macaly-Generated Next.js Project
+# 🚀 Calmify_Mental_Wellness_Reimagined Next.js Project
 
 This is a Next.js project scaffolded with TypeScript and Tailwind CSS, generated using **Macaly**. It includes components, hooks, and utilities to help you build a scalable frontend web application quickly.
 
