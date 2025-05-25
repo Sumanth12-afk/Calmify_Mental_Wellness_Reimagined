@@ -7,8 +7,8 @@ WORKDIR /app
 # Switch to root user to install global packages
 USER root
 
-# Update npm to the latest version to get a newer cross-spawn
-RUN npm install -g npm@latest
+# Install a specific, compatible version of npm
+RUN npm install -g npm@9
 
 # Switch back to node user for security
 USER node
