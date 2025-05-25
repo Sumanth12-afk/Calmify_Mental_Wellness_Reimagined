@@ -1,23 +1,29 @@
-# Use official Node.js image
+# Use small, secure image
 FROM node:18-alpine
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
+
+# Copy only what's needed first
 COPY package*.json ./
 
-# Install dependencies (use --legacy-peer-deps to handle resolutions)
-RUN npm install --legacy-peer-deps
+# Install dependencies cleanly
+RUN npm ci --no-audit --no-fund || (sleep 5 && npm ci --no-audit --no-fund)
 
-# Copy the rest of the code
+# Debug: Check the version of cross-spawn
+RUN npm list cross-spawn || echo "cross-spawn not found"
+
+# Copy app code
 COPY . .
 
-# Build the Next.js app
+# Build Next.js app
 RUN npm run build
 
-# Expose the default Next.js port
+# Expose Next.js default port
 EXPOSE 3000
 
-# Start the app
+# Start server
 CMD ["npm", "start"]
