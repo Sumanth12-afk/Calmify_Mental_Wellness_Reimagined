@@ -150,7 +150,7 @@ export function CompetitiveAnalysis() {
         className="mt-12 p-6 rounded-xl bg-[#F7FAFC] border border-[#E1E7EF] max-w-2xl mx-auto"
       >
         <p className="text-[#2D3142] font-medium font-nunito">
-          Calmify's patent-pending stress prediction algorithm provides an 18-month competitive advantage over other wellness apps in the market.
+          Calmify&apos;s patent-pending stress prediction algorithm provides an 18-month competitive advantage over other wellness apps in the market.
         </p>
       </motion.div>
     </section>
