@@ -86,24 +86,24 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Install Trivy
-        run: |
-          sudo apt-get update
-          sudo apt-get install wget apt-transport-https gnupg lsb-release -y
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-          echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update
-          sudo apt-get install trivy -y
+    - name: Install Trivy
+      run: |
+        sudo apt-get update
+        sudo apt-get install wget apt-transport-https gnupg lsb-release -y
+        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+        echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee /etc/apt/sources.list.d/trivy.list
+        sudo apt-get update
+        sudo apt-get install trivy -y
 
-      - name: Scan Docker image with Trivy
-        run: trivy image --exit-code 1 --severity HIGH,CRITICAL --format table --output trivy-report.txt $IMAGE_NAME:$IMAGE_TAG
+    - name: Scan Docker image with Trivy
+      run: trivy image --exit-code 1 --severity HIGH,CRITICAL --format table --output trivy-report.txt $IMAGE_NAME_LOWER:$IMAGE_TAG
 
-      - name: Upload Trivy Scan Report
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: trivy-report
-          path: trivy-report.txt
+    - name: Upload Trivy Scan Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: trivy-report
+        path: trivy-report.txt
 
   deploy:
     needs: trivy-scan
