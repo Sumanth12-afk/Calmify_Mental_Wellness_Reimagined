@@ -22,7 +22,6 @@ This is a Next.js project scaffolded with TypeScript and Tailwind CSS, generated
 ├── hooks/              # Custom React hooks
 ├── lib/                # Utility functions or services
 ├── public/             # Static assets
-├── .macaly/            # Macaly config or metadata
 ├── package.json        # Project metadata and dependencies
 ```
 
