@@ -151,7 +151,14 @@ jobs:
           kubectl get pods -o wide
 
           echo "📦 Describing pods..."
-          kubectl describe pods
+          kubectl describe pods || echo "❌ Failed to describe pods"
 
-          echo "📝 Fetching logs from the first pod..."
-          kubectl logs $(kubectl get pods -o jsonpath="{.items[0].metadata.name}")
+          echo "📝 Trying to fetch logs from the first pod..."
+          POD_NAME=$(kubectl get pods -o jsonpath="{.items[0].metadata.name}")
+
+          if [ -n "$POD_NAME" ]; then
+          echo "Fetching logs from pod: $POD_NAME"
+          kubectl logs "$POD_NAME"
+          else
+          echo "❌ No pods found to fetch logs from"
+          fi
