@@ -108,7 +108,7 @@ jobs:
           name: trivy-report
           path: trivy-report.txt
 
-  deploy:
+    deploy:
       needs: trivy-scan
       runs-on: ubuntu-latest
       steps:
@@ -133,14 +133,17 @@ jobs:
         with:
           version: v0.20.0
 
-      - name: Normalize image name to lowercase
-        run: echo "IMAGE_NAME_LOWER=$(echo $IMAGE_NAME_LOWER | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+    # ✅ Set lowercase image name (to avoid invalid tag error)
+      - name: Set lowercase image name
+        run: echo "CALMIFY_IMAGE=ghcr.io/sumanth12-afk/calmify_mental_wellness_reimagined:latest" >> $GITHUB_ENV
 
+    # ✅ Build Docker image with lowercase tag
       - name: Build Docker image
-        run: docker build -t $IMAGE_NAME_LOWER:$IMAGE_TAG .
+        run: docker build -t $CALMIFY_IMAGE .
 
+    # ✅ Load the image into KIND cluster
       - name: Load image into KIND
-        run: kind load docker-image $IMAGE_NAME_LOWER:$IMAGE_TAG
+        run: kind load docker-image $CALMIFY_IMAGE
 
       - name: Get cluster info
         run: |
@@ -156,6 +159,7 @@ jobs:
       - name: Wait for deployment rollout
         run: kubectl rollout status deployment/calmify-deployment
 
+    # ✅ Debug pod issues if rollout fails
       - name: Debug deployment issues
         if: failure()
         run: |
@@ -173,3 +177,4 @@ jobs:
           else
             echo "❌ No pods found to fetch logs from"
           fi
+
