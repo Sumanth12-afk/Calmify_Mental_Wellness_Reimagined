@@ -127,14 +127,31 @@ jobs:
 
       - name: Get cluster info
         run: |
-          kubectl cluster-info
-          kubectl get nodes
+            kubectl cluster-info
+            kubectl get nodes
 
       - name: Validate Kubernetes manifests
         run: kubectl apply --dry-run=client -f k8s/deployment.yaml
+
+    # ✅ Load the built image into KIND cluster
+      - name: Load image into KIND
+        run: kind load docker-image $IMAGE_NAME_LOWER:$IMAGE_TAG
 
       - name: Apply Kubernetes deployment
         run: kubectl apply -f k8s/deployment.yaml
 
       - name: Wait for deployment rollout
         run: kubectl rollout status deployment/calmify-deployment
+
+    # ✅ Debug if deployment rollout fails
+      - name: Debug deployment issues
+        if: failure()
+        run: |
+          echo "🔍 Checking pod statuses..."
+          kubectl get pods -o wide
+
+          echo "📦 Describing pods..."
+          kubectl describe pods
+
+          echo "📝 Fetching logs from the first pod..."
+          kubectl logs $(kubectl get pods -o jsonpath="{.items[0].metadata.name}")
