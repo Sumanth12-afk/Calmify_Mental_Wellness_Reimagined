@@ -120,7 +120,7 @@ jobs:
         with:
           install: true
 
-      - name: Set up Node.js (optional, only if build step needs it)
+      - name: Set up Node.js (optional for app build)
         uses: actions/setup-node@v3
         with:
           node-version: '18'
@@ -128,13 +128,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Docker image
-        run: docker build -t $IMAGE_NAME_LOWER:$IMAGE_TAG .
-
       - name: Install KIND
         uses: helm/kind-action@v1.8.0
         with:
           version: v0.20.0
+
+      - name: Normalize image name to lowercase
+        run: echo "IMAGE_NAME_LOWER=$(echo $IMAGE_NAME_LOWER | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Build Docker image
+        run: docker build -t $IMAGE_NAME_LOWER:$IMAGE_TAG .
 
       - name: Load image into KIND
         run: kind load docker-image $IMAGE_NAME_LOWER:$IMAGE_TAG
@@ -166,7 +169,7 @@ jobs:
           POD_NAME=$(kubectl get pods -o jsonpath="{.items[0].metadata.name}")
           if [ -n "$POD_NAME" ]; then
             echo "Fetching logs from pod: $POD_NAME"
-          kubectl logs "$POD_NAME"
+            kubectl logs "$POD_NAME"
           else
             echo "❌ No pods found to fetch logs from"
           fi
