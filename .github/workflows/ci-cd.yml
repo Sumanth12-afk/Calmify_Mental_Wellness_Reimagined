@@ -141,6 +141,9 @@ jobs:
         - name: Build Docker image
           run: docker build -t $CALMIFY_IMAGE .
 
+        - name: Verify Docker image availability
+          run: docker pull $CALMIFY_IMAGE || echo "❌ Image not found in registry. Deployment cannot proceed."
+
     # ✅ Load the image into KIND cluster
         - name: Load image into KIND
           run: kind load docker-image $CALMIFY_IMAGE
@@ -164,12 +167,12 @@ jobs:
           if: failure()
           run: |
             echo "🔍 Checking pod statuses..."
-            kubectl get pods -o wide
+            kubectl get pods -o wide || echo "❌ Failed to fetch pod statuses"
 
             echo "📦 Describing pods..."
             kubectl describe pods || echo "❌ Failed to describe pods"
 
-            echo "📝 Trying to fetch logs from the first pod..."
+            echo "📝 Fetching logs from the first pod..."
             POD_NAME=$(kubectl get pods -o jsonpath="{.items[0].metadata.name}")
             if [ -n "$POD_NAME" ]; then
               echo "Fetching logs from pod: $POD_NAME"
