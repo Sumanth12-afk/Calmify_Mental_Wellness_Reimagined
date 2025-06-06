@@ -123,15 +123,10 @@ jobs:
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Pull Docker image from GHCR
-        run: docker pull $CALMIFY_IMAGE || echo "❌ Image not found in registry. Deployment cannot proceed."
+        run: docker pull $CALMIFY_IMAGE
 
       - name: Load image into KIND
-        run: |
-          if docker image inspect $CALMIFY_IMAGE > /dev/null 2>&1; then
-            kind load docker-image $CALMIFY_IMAGE --name test-cluster
-          else
-            echo "❌ Docker image not present locally. Skipping load into KIND."
-          fi
+        run: kind load docker-image $CALMIFY_IMAGE --name test-cluster
 
       - name: Get cluster info
         run: |
@@ -159,20 +154,17 @@ jobs:
       - name: Debug deployment issues
         if: failure()
         run: |
-          echo "🔍 Cluster info..."
-          kubectl cluster-info || true
-          kubectl get nodes || true
           echo "🔍 Checking pod statuses..."
-          kubectl get pods -n default -o wide || true
+          kubectl get pods -n default -o wide
           echo "📦 Describing pods..."
           kubectl describe pods -n default || echo "❌ Failed to describe pods"
           echo "📝 Checking events..."
-          kubectl get events -n default || true
+          kubectl get events -n default
           echo "📝 Trying to fetch logs from the first pod..."
-          POD_NAME=$(kubectl get pods -n default -o jsonpath="{.items[0].metadata.name}" 2>/dev/null || true)
+          POD_NAME=$(kubectl get pods -n default -o jsonpath="{.items[0].metadata.name}" || echo "")
           if [ -n "$POD_NAME" ]; then
             echo "Fetching logs from pod: $POD_NAME"
-            kubectl logs "$POD_NAME" -n default || echo "❌ Failed to fetch logs"
+            kubectl logs "$POD_NAME" -n default
           else
             echo "❌ No pods found to fetch logs from"
           fi
