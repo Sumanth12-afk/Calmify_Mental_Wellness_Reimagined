@@ -1,178 +1,48 @@
-name: CI/CD Pipeline
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
-
-env:
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
-  IMAGE_TAG: latest
-  IMAGE_NAME_LOWER: ghcr.io/${{ github.repository }}
-  CALMIFY_IMAGE: ghcr.io/sumanth12-afk/calmify_mental_wellness_reimagined:latest
-
-jobs:
-  lint-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      - name: Install dependencies
-        run: npm ci
-      - name: Run ESLint
-        run: npm run lint
-      - name: Run unit tests
-        run: npm test
-
-  sonarqube:
-    needs: lint-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      - name: Install dependencies
-        run: npm ci
-      - name: Run SonarQube scan
-        uses: SonarSource/sonarqube-scan-action@v5.0.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=Sumanth12-afk_Calmify_Mental_Wellness_Reimagined
-            -Dsonar.organization=sumanth12-afk
-            -Dsonar.sources=.
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-
-  build-and-push:
-    needs: sonarqube
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Normalize image name to lowercase
-        run: echo "IMAGE_NAME_LOWER=$(echo $IMAGE_NAME_LOWER | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-      - name: Log in to GitHub Container Registry (GHCR)
-        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: Build Docker image
-        run: docker build -t $IMAGE_NAME_LOWER:$IMAGE_TAG .
-      - name: Push Docker image to GHCR
-        run: docker push $IMAGE_NAME_LOWER:$IMAGE_TAG
-
-  trivy-scan:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Normalize image name to lowercase
-        run: echo "IMAGE_NAME_LOWER=$(echo $IMAGE_NAME_LOWER | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-      - name: Log in to GitHub Container Registry (GHCR)
-        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: Install Trivy
-        run: |
-          sudo apt-get update
-          sudo apt-get install wget apt-transport-https gnupg lsb-release -y
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-          echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update
-          sudo apt-get install trivy -y
-      - name: Scan Docker image with Trivy
-        run: trivy image --exit-code 0 --severity HIGH,CRITICAL --format table --output trivy-report.txt $IMAGE_NAME_LOWER:$IMAGE_TAG
-      - name: Upload Trivy Scan Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-report
-          path: trivy-report.txt
-
-  deploy:
-    needs: trivy-scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          install: true
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install KIND
-        uses: helm/kind-action@v1.8.0
-        with:
-          version: v0.20.0
-          clusterName: test-cluster
-
-      - name: Log in to GitHub Container Registry (GHCR)
-        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Pull Docker image from GHCR
-        run: docker pull $CALMIFY_IMAGE || echo "❌ Image not found in registry. Deployment cannot proceed."
-
-      - name: Load image into KIND
-        run: |
-          if docker image inspect $CALMIFY_IMAGE > /dev/null 2>&1; then
-            kind load docker-image $CALMIFY_IMAGE --name test-cluster
-          else
-            echo "❌ Docker image not present locally. Skipping load into KIND."
-          fi
-
-      - name: Get cluster info
-        run: |
-          kubectl cluster-info
-          kubectl get nodes
-
-      - name: Validate Kubernetes manifests
-        run: kubectl apply --dry-run=client -f k8s/deployment.yaml
-
-      - name: Apply Kubernetes deployment
-        run: kubectl apply -f k8s/deployment.yaml
-
-      - name: Inspect deployment and pods
-        run: |
-          echo "🔍 Checking deployment status..."
-          kubectl get deployments -n default
-          kubectl describe deployment calmify-deployment -n default
-          echo "🔍 Checking pod status..."
-          kubectl get pods -n default -o wide
-          kubectl describe pods -n default || echo "No pods to describe"
-
-      - name: Wait for deployment rollout
-        run: kubectl rollout status deployment/calmify-deployment -n default --timeout=120s
-
-      - name: Debug deployment issues
-        if: failure()
-        run: |
-          echo "🔍 Cluster info..."
-          kubectl cluster-info || true
-          kubectl get nodes || true
-          echo "🔍 Checking pod statuses..."
-          kubectl get pods -n default -o wide || true
-          echo "📦 Describing pods..."
-          kubectl describe pods -n default || echo "❌ Failed to describe pods"
-          echo "📝 Checking events..."
-          kubectl get events -n default || true
-          echo "📝 Trying to fetch logs from the first pod..."
-          POD_NAME=$(kubectl get pods -n default -o jsonpath="{.items[0].metadata.name}" 2>/dev/null || true)
-          if [ -n "$POD_NAME" ]; then
-            echo "Fetching logs from pod: $POD_NAME"
-            kubectl logs "$POD_NAME" -n default || echo "❌ Failed to fetch logs"
-          else
-            echo "❌ No pods found to fetch logs from"
-          fi
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calmify-deployment
+  labels:
+    app: calmify
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: calmify
+  template:
+    metadata:
+      labels:
+        app: calmify
+    spec:
+      containers:
+        - name: calmify
+          image: ghcr.io/sumanth12-afk/calmify_mental_wellness_reimagined:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calmify-service
+spec:
+  type: ClusterIP
+  selector:
+    app: calmify
+  ports:
+    - port: 80
+      targetPort: 3000
