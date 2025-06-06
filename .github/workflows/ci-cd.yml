@@ -10,7 +10,7 @@ on:
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
   IMAGE_TAG: latest
-  IMAGE_NAME_LOWER: ghcr.io/${{ github.repository }} # Will convert to lowercase in jobs
+  IMAGE_NAME_LOWER: ghcr.io/${{ github.repository }}
 
 jobs:
   lint-test:
@@ -69,13 +69,13 @@ jobs:
       - name: Normalize image name to lowercase
         run: echo "IMAGE_NAME_LOWER=$(echo $IMAGE_NAME_LOWER | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
-      - name: Log in to GitHub Container Registry (GHCR)
+      - name: Log in to GHCR
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build Docker image
         run: docker build -t $IMAGE_NAME_LOWER:$IMAGE_TAG .
 
-      - name: Push Docker image to GHCR
+      - name: Push Docker image
         run: docker push $IMAGE_NAME_LOWER:$IMAGE_TAG
 
   trivy-scan:
@@ -85,7 +85,7 @@ jobs:
       - name: Normalize image name to lowercase
         run: echo "IMAGE_NAME_LOWER=$(echo $IMAGE_NAME_LOWER | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
-      - name: Log in to GitHub Container Registry (GHCR)
+      - name: Log in to GHCR
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Install Trivy
@@ -100,7 +100,7 @@ jobs:
       - name: Scan Docker image with Trivy
         run: trivy image --exit-code 0 --severity HIGH,CRITICAL --format table --output trivy-report.txt $IMAGE_NAME_LOWER:$IMAGE_TAG
 
-      - name: Upload Trivy Scan Report
+      - name: Upload Trivy Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -114,12 +114,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx (needed by KIND)
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
         with:
           install: true
 
-      - name: Set up Node.js (optional for app build)
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
@@ -127,21 +127,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install KIND
+      - name: Install KinD
         uses: helm/kind-action@v1.8.0
         with:
           version: v0.20.0
 
-      - name: Set lowercase image name
+      - name: Create KinD cluster
+        run: kind create cluster --wait 60s
+
+      - name: Set image name
         run: echo "CALMIFY_IMAGE=ghcr.io/sumanth12-afk/calmify_mental_wellness_reimagined:latest" >> $GITHUB_ENV
 
       - name: Log in to GHCR
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Pull Docker image
+      - name: Pull image from GHCR
         run: docker pull $CALMIFY_IMAGE
 
-      - name: Load image into KIND
+      - name: Load image into KinD
         run: kind load docker-image $CALMIFY_IMAGE
 
       - name: Get cluster info
@@ -149,13 +152,13 @@ jobs:
           kubectl cluster-info
           kubectl get nodes
 
-      - name: Validate Kubernetes manifests
+      - name: Validate manifests
         run: kubectl apply --dry-run=client -f k8s/deployment.yaml
 
-      - name: Apply Kubernetes deployment
+      - name: Deploy to Kubernetes
         run: kubectl apply -f k8s/deployment.yaml
 
-      - name: Wait for deployment rollout
+      - name: Wait for rollout
         run: kubectl rollout status deployment/calmify-deployment
 
       - name: Debug deployment issues
