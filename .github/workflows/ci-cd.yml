@@ -143,12 +143,7 @@ jobs:
 
     # ✅ Load the image into KIND cluster
         - name: Load image into KIND
-          run: |
-            if docker image inspect $CALMIFY_IMAGE > /dev/null 2>&1; then
-              kind load docker-image $CALMIFY_IMAGE
-            else
-              echo "❌ Docker image not present locally. Skipping load into KIND."
-            fi
+          run: kind load docker-image $CALMIFY_IMAGE
 
         - name: Get cluster info
           run: |
@@ -168,23 +163,17 @@ jobs:
         - name: Debug deployment issues
           if: failure()
           run: |
-            echo "🔍 Cluster info..."
-            kubectl cluster-info || true
-            kubectl get nodes || true
             echo "🔍 Checking pod statuses..."
-            kubectl get pods -o wide || true
+            kubectl get pods -o wide
 
             echo "📦 Describing pods..."
             kubectl describe pods || echo "❌ Failed to describe pods"
 
-            echo "📝 Checking events..."
-            kubectl get events || true
-
             echo "📝 Trying to fetch logs from the first pod..."
-            POD_NAME=$(kubectl get pods -o jsonpath="{.items[0].metadata.name}" 2>/dev/null || true)
+            POD_NAME=$(kubectl get pods -o jsonpath="{.items[0].metadata.name}")
             if [ -n "$POD_NAME" ]; then
               echo "Fetching logs from pod: $POD_NAME"
-              kubectl logs "$POD_NAME" || echo "❌ Failed to fetch logs"
+              kubectl logs "$POD_NAME"
             else
               echo "❌ No pods found to fetch logs from"
             fi
