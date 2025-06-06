@@ -154,17 +154,20 @@ jobs:
       - name: Debug deployment issues
         if: failure()
         run: |
+          echo "🔍 Cluster info..."
+          kubectl cluster-info || true
+          kubectl get nodes || true
           echo "🔍 Checking pod statuses..."
-          kubectl get pods -n default -o wide
+          kubectl get pods -n default -o wide || true
           echo "📦 Describing pods..."
           kubectl describe pods -n default || echo "❌ Failed to describe pods"
           echo "📝 Checking events..."
-          kubectl get events -n default
+          kubectl get events -n default || true
           echo "📝 Trying to fetch logs from the first pod..."
-          POD_NAME=$(kubectl get pods -n default -o jsonpath="{.items[0].metadata.name}" || echo "")
+          POD_NAME=$(kubectl get pods -n default -o jsonpath="{.items[0].metadata.name}" 2>/dev/null || true)
           if [ -n "$POD_NAME" ]; then
             echo "Fetching logs from pod: $POD_NAME"
-            kubectl logs "$POD_NAME" -n default
+            kubectl logs "$POD_NAME" -n default || echo "❌ Failed to fetch logs"
           else
             echo "❌ No pods found to fetch logs from"
           fi
