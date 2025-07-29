@@ -13,9 +13,6 @@ COPY package*.json ./
 # Install dependencies cleanly
 RUN npm ci --no-audit --no-fund || (sleep 5 && npm ci --no-audit --no-fund)
 
-# Debug: Check the version of cross-spawn
-RUN npm list cross-spawn || echo "cross-spawn not found"
-
 # Copy app code
 COPY . .
 

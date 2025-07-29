@@ -133,7 +133,7 @@ jobs:
           version: v0.20.0
 
       - name: Create KinD cluster
-        run: kind create cluster --wait 60s
+        run: kind create cluster --name test-cluster --wait 60s
 
       - name: Set image name
         run: echo "CALMIFY_IMAGE=ghcr.io/sumanth12-afk/calmify_mental_wellness_reimagined:latest" >> $GITHUB_ENV
@@ -145,7 +145,7 @@ jobs:
         run: docker pull $CALMIFY_IMAGE
 
       - name: Load image into KinD
-        run: kind load docker-image $CALMIFY_IMAGE
+        run: kind load docker-image $CALMIFY_IMAGE --name test-cluster
 
       - name: Get cluster info
         run: |
@@ -159,22 +159,28 @@ jobs:
         run: kubectl apply -f k8s/deployment.yaml
 
       - name: Wait for rollout
-        run: kubectl rollout status deployment/calmify-deployment
+        run: kubectl rollout status deployment/calmify-deployment --timeout=120s
 
       - name: Debug deployment issues
         if: failure()
         run: |
           echo "🔍 Checking pod statuses..."
           kubectl get pods -o wide
-
+          
+          echo "📦 Describing deployment..."
+          kubectl describe deployment calmify-deployment || echo "❌ Failed to describe deployment"
+          
           echo "📦 Describing pods..."
           kubectl describe pods || echo "❌ Failed to describe pods"
+          
+          echo "📝 Checking events..."
+          kubectl get events --sort-by='.lastTimestamp'
 
           echo "📝 Trying to fetch logs from the first pod..."
-          POD_NAME=$(kubectl get pods -o jsonpath="{.items[0].metadata.name}")
+          POD_NAME=$(kubectl get pods -o jsonpath="{.items[0].metadata.name}" 2>/dev/null || echo "")
           if [ -n "$POD_NAME" ]; then
             echo "Fetching logs from pod: $POD_NAME"
-            kubectl logs "$POD_NAME"
+            kubectl logs "$POD_NAME" || echo "❌ Failed to get logs"
           else
             echo "❌ No pods found to fetch logs from"
           fi
